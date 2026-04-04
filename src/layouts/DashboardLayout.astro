@@ -128,21 +128,15 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
 </html>
 
 <script>
-  // Lógica de Sair da Conta (Usando Promise estática em vez de async/await para evitar quebras no Build)
+  // Importação estática direta (amigável para a Vercel)
+  import { signOut } from "auth-astro/client";
+  
   const logoutBtn = document.getElementById("btn-logout");
+  
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      import("auth-astro/client").then(({ signOut }) => {
-        signOut({ callbackUrl: "/login" });
-      });
-    });
-  }
-
-  // Lógica de Atualizar a Página
-  const reloadBtn = document.getElementById("btn-reload");
-  if (reloadBtn) {
-    reloadBtn.addEventListener("click", () => {
-      window.location.reload();
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      signOut({ callbackUrl: "/login" });
     });
   }
 </script>
