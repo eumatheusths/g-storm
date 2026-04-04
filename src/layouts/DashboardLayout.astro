@@ -87,7 +87,6 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
 
       <div class="p-6 md:p-8 relative h-full">
         {isExpirado ? (
-          /* TELA DE BLOQUEIO */
           <div class="absolute inset-0 z-50 bg-white/90 backdrop-blur-md flex items-center justify-center p-6 text-center">
             <div class="max-w-md">
               <div class="w-20 h-20 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -106,7 +105,7 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
                 Liberar Acesso via WhatsApp
               </a>
               <button 
-                onclick="window.location.reload()"
+                id="btn-reload"
                 class="mt-4 text-sm text-gray-400 hover:text-gray-600 transition-colors underline"
               >
                 Já paguei? Clique para atualizar
@@ -114,7 +113,6 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
             </div>
           </div>
         ) : (
-          /* CONTEÚDO NORMAL DO SISTEMA */
           <slot />
         )}
       </div>
@@ -124,9 +122,21 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
 </html>
 
 <script>
-  const { signOut } = await import("auth-astro/client");
+  // Lógica de Sair da Conta (Logout)
   const logoutBtn = document.getElementById("btn-logout");
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => signOut({ callbackUrl: "/login" }));
+    logoutBtn.addEventListener("click", async () => {
+      // Importa o cliente do Auth Astro apenas quando o botão for clicado (melhora a performance)
+      const { signOut } = await import("auth-astro/client");
+      signOut({ callbackUrl: "/login" });
+    });
+  }
+
+  // Lógica de Atualizar a Página
+  const reloadBtn = document.getElementById("btn-reload");
+  if (reloadBtn) {
+    reloadBtn.addEventListener("click", () => {
+      window.location.reload();
+    });
   }
 </script>
