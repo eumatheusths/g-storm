@@ -86,7 +86,9 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
       </header>
 
       <div class="p-6 md:p-8 relative h-full">
-        {isExpirado ? (
+        
+        {/* Renderiza a tela de bloqueio apenas se estiver expirado */}
+        {isExpirado && (
           <div class="absolute inset-0 z-50 bg-white/90 backdrop-blur-md flex items-center justify-center p-6 text-center">
             <div class="max-w-md">
               <div class="w-20 h-20 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -112,9 +114,13 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
               </button>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Renderiza o conteúdo normal apenas se NÃO estiver expirado */}
+        {!isExpirado && (
           <slot />
         )}
+
       </div>
     </main>
 
@@ -122,13 +128,13 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
 </html>
 
 <script>
-  // Lógica de Sair da Conta (Logout)
+  // Lógica de Sair da Conta (Usando Promise estática em vez de async/await para evitar quebras no Build)
   const logoutBtn = document.getElementById("btn-logout");
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-      // Importa o cliente do Auth Astro apenas quando o botão for clicado (melhora a performance)
-      const { signOut } = await import("auth-astro/client");
-      signOut({ callbackUrl: "/login" });
+    logoutBtn.addEventListener("click", () => {
+      import("auth-astro/client").then(({ signOut }) => {
+        signOut({ callbackUrl: "/login" });
+      });
     });
   }
 
