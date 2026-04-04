@@ -26,5 +26,11 @@
   "devDependencies": {
     "dotenv": "^17.4.0",
     "drizzle-kit": "^0.31.10"
+  },
+
+  "overrides": {
+    "@astrojs/tailwind": {
+      "astro": "$astro"
+    }
   }
 }
