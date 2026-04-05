@@ -6,42 +6,80 @@ import { db } from '../db';
 import { users, agendamentos } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 
-// Proteção de rota
 const session = await getSession(Astro.request);
 if (!session?.user?.email) {
   return Astro.redirect('/login');
 }
 
-// Lógica para salvar o Link Único (Slug) e Nome da Empresa
 let erroSlug = false;
-if (Astro.request.method === 'POST') {
-  try {
-    const formData = await Astro.request.formData();
-    const companyName = formData.get('companyName')?.toString();
-    let slug = formData.get('slug')?.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-');
 
-    if (companyName && slug) {
-      await db.update(users).set({ companyName, slug }).where(eq(users.email, session.user.email));
+// AÇÕES DO PAINEL
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+
+  if (action === 'create_slug') {
+    try {
+      const companyName = formData.get('companyName')?.toString();
+      let slug = formData.get('slug')?.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-');
+      if (companyName && slug) {
+        await db.update(users).set({ companyName, slug }).where(eq(users.email, session.user.email));
+      }
+    } catch (e) {
+      erroSlug = true;
     }
-  } catch (e) {
-    erroSlug = true;
+  } 
+  else if (action === 'approve') {
+    const agendamentoId = formData.get('agendamentoId')?.toString();
+    if (agendamentoId) await db.update(agendamentos).set({ status: 'confirmado' }).where(eq(agendamentos.id, agendamentoId));
+  }
+  else if (action === 'reject') {
+    const agendamentoId = formData.get('agendamentoId')?.toString();
+    if (agendamentoId) await db.update(agendamentos).set({ status: 'cancelado' }).where(eq(agendamentos.id, agendamentoId));
+  }
+  else if (action === 'finish') {
+    const agendamentoId = formData.get('agendamentoId')?.toString();
+    if (agendamentoId) await db.update(agendamentos).set({ status: 'concluido' }).where(eq(agendamentos.id, agendamentoId));
   }
 }
 
-// Busca usuário logado
 const userDbArray = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1);
 const userDb = userDbArray[0];
 
-// Busca todos os agendamentos desta estética
 const listaAgendamentos = await db.select().from(agendamentos).where(eq(agendamentos.userId, userDb.id)).orderBy(desc(agendamentos.createdAt));
 
-// Separa os agendamentos por status
-const pendentes = listaAgendamentos.filter(a => a.status === 'pendente');
 const confirmados = listaAgendamentos.filter(a => a.status === 'confirmado');
+let pendentes = listaAgendamentos.filter(a => a.status === 'pendente');
+
+// ==========================================
+// MOTOR DE DETECÇÃO DE CONFLITO DE AGENDA
+// ==========================================
+const timeToMins = (t: string) => { const [h, m] = t.split(':'); return parseInt(h) * 60 + parseInt(m); };
+
+pendentes = pendentes.map(pendente => {
+  let temConflito = false;
+  const startA = timeToMins(pendente.horaAgendamento);
+  const endA = startA + pendente.duracaoMinutos;
+  const dataA = new Date(pendente.dataAgendamento).getTime();
+
+  // Verifica se bate de frente com algum Confirmado
+  for (const conf of confirmados) {
+    const dataB = new Date(conf.dataAgendamento).getTime();
+    if (dataA === dataB) {
+      const startB = timeToMins(conf.horaAgendamento);
+      const endB = startB + conf.duracaoMinutos;
+      // Lógica de intersecção de tempo
+      if (startA < endB && endA > startB) {
+        temConflito = true;
+        break;
+      }
+    }
+  }
+  return { ...pendente, temConflito };
+});
 
 const urlBase = "https://g-storm.vercel.app/agendar/";
 
-// Função auxiliar para renderizar o ícone de sujeira
 const getIconeSujeira = (nivel: string | null) => {
   if (nivel === 'Muito') return '🚜 Muito Sujo';
   if (nivel === 'Pouco') return '✨ Pouco Sujo';
@@ -52,27 +90,105 @@ const getCorSujeira = (nivel: string | null) => {
   if (nivel === 'Pouco') return 'text-green-600 bg-green-50 border-green-200';
   return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 };
+const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
 ---
 
 <DashboardLayout>
-  <div class="space-y-8">
+  <div class="space-y-8 relative">
     
     <div>
       <h1 class="text-3xl font-black text-black tracking-tight">Gestão de Agendamentos</h1>
       <p class="text-gray-500 mt-1">Controle os horários dos boxes e avalie novos pedidos.</p>
     </div>
 
+    <dialog id="modal-avaliacao" class="bg-transparent p-0 backdrop:bg-black/80 backdrop:backdrop-blur-sm open:flex flex-col justify-center items-center h-screen w-full fixed inset-0 z-50">
+      <div class="bg-white border border-gray-200 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
+        
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <h2 class="text-lg font-black text-black">Ficha do Pedido</h2>
+          <button type="button" id="btn-fechar-modal" class="text-gray-400 hover:text-red-500 transition-colors p-2 bg-gray-200 rounded-full hover:bg-red-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <div class="overflow-y-auto p-6 space-y-6">
+          
+          <div id="modal-alerta-conflito" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+            <svg class="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+              <h4 class="text-sm font-bold text-red-800">Conflito de Agenda!</h4>
+              <p class="text-xs text-red-600 mt-1">Já existe um carro aprovado neste horário. Se aprovar, você terá sobreposição de boxes.</p>
+            </div>
+          </div>
+
+          <div id="modal-container-foto" class="hidden">
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Foto Enviada</label>
+            <img id="modal-foto" class="w-full h-48 object-cover rounded-xl border border-gray-200 shadow-sm" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Veículo</label>
+              <p id="modal-veiculo" class="text-lg font-bold text-black"></p>
+              <p id="modal-placa" class="text-sm text-gray-500 font-medium"></p>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Cliente</label>
+              <p id="modal-cliente" class="text-sm font-bold text-black"></p>
+              <p id="modal-zap" class="text-sm text-gray-500 font-medium"></p>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Detalhes do Serviço</label>
+            <div class="flex justify-between items-center mb-2">
+              <span id="modal-servico" class="font-bold text-black"></span>
+              <span id="modal-sujeira" class="text-xs px-2 py-1 rounded font-bold"></span>
+            </div>
+            <p id="modal-detalhes" class="text-sm text-gray-600 italic"></p>
+            
+            <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+              <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span id="modal-datahora"></span>
+              </span>
+              <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span id="modal-duracao"></span> min
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="p-6 border-t border-gray-100 bg-white grid grid-cols-2 gap-4">
+          <form method="POST">
+            <input type="hidden" name="action" value="reject" />
+            <input type="hidden" name="agendamentoId" id="modal-input-recusar" />
+            <button type="submit" class="w-full py-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              Recusar
+            </button>
+          </form>
+          <form method="POST">
+            <input type="hidden" name="action" value="approve" />
+            <input type="hidden" name="agendamentoId" id="modal-input-aprovar" />
+            <button type="submit" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-colors flex justify-center items-center gap-2 shadow-lg shadow-green-500/30">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              Aprovar
+            </button>
+          </form>
+        </div>
+      </div>
+    </dialog>
+
     {!userDb.slug ? (
       <div class="bg-black text-white p-8 rounded-2xl shadow-xl relative overflow-hidden border border-gray-800">
         <div class="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-purple-600/20 to-transparent pointer-events-none"></div>
         <div class="relative z-10 max-w-xl">
-          <div class="w-12 h-12 bg-purple-600/20 text-purple-400 rounded-xl flex items-center justify-center mb-6">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-          </div>
           <h2 class="text-2xl font-bold mb-2">Configure seu Link de Agendamento</h2>
-          <p class="text-gray-400 mb-6 leading-relaxed">Crie o link exclusivo da sua estética para enviar no WhatsApp dos clientes.</p>
-          
           <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="create_slug" />
             <div>
               <label class="block text-sm font-medium text-gray-300 mb-1">Nome da sua Estética</label>
               <input type="text" name="companyName" required placeholder="Ex: Studio Marqé Premium" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
@@ -83,7 +199,6 @@ const getCorSujeira = (nivel: string | null) => {
                 <span class="inline-flex items-center px-4 bg-gray-800 border border-r-0 border-gray-700 rounded-l-xl text-gray-400 text-sm">g-storm.vercel.app/agendar/</span>
                 <input type="text" name="slug" required placeholder="studio-marqe" class="flex-1 w-full bg-gray-900 border border-gray-700 rounded-r-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
               </div>
-              {erroSlug && <p class="text-red-400 text-xs mt-2">Esse link já está em uso por outra empresa. Tente outro.</p>}
             </div>
             <button type="submit" class="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all">
               Gerar Meu Link
@@ -95,12 +210,9 @@ const getCorSujeira = (nivel: string | null) => {
       <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Seu Link de Agendamento</h3>
-          <div class="flex items-center gap-2">
-            <span class="text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-lg border border-purple-100 select-all">{urlBase}{userDb.slug}</span>
-          </div>
+          <span class="text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-lg border border-purple-100 select-all">{urlBase}{userDb.slug}</span>
         </div>
-        <button onclick={`navigator.clipboard.writeText('${urlBase}${userDb.slug}'); alert('Link copiado com sucesso!');`} class="px-5 py-2.5 bg-black hover:bg-gray-800 text-white font-semibold rounded-xl transition-all flex items-center gap-2 text-sm shadow-md">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+        <button onclick={`navigator.clipboard.writeText('${urlBase}${userDb.slug}'); alert('Link copiado com sucesso!');`} class="px-5 py-2.5 bg-black hover:bg-gray-800 text-white font-semibold rounded-xl text-sm shadow-md">
           Copiar Link
         </button>
       </div>
@@ -124,34 +236,50 @@ const getCorSujeira = (nivel: string | null) => {
               </div>
             ) : (
               pendentes.map(ag => (
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-300 transition-colors group">
+                <div class={`bg-white p-4 rounded-xl shadow-sm border transition-colors group flex flex-col ${ag.temConflito ? 'border-red-400 shadow-red-500/10' : 'border-gray-200 hover:border-purple-300'}`}>
+                  
+                  {ag.temConflito && (
+                    <div class="mb-3 flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 py-1 px-2 rounded w-fit">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                      Conflito de Horário!
+                    </div>
+                  )}
+
                   <div class="flex justify-between items-start mb-2">
                     <h4 class="font-bold text-black">{ag.veiculoModelo} <span class="text-xs text-gray-400 font-normal">({ag.categoriaVeiculo})</span></h4>
                     <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
                   </div>
                   
-                  <p class="text-sm text-gray-800 font-medium">{ag.servicoDesejado}</p>
-                  <p class="text-xs text-gray-500 mb-3">{ag.clienteNome} • {ag.clienteWhatsapp}</p>
+                  <p class="text-sm text-gray-800 font-medium mb-3">{ag.servicoDesejado}</p>
                   
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class={`text-[10px] px-2 py-1 rounded border font-bold ${getCorSujeira(ag.nivelSujeira)}`}>
-                      {getIconeSujeira(ag.nivelSujeira)}
-                    </span>
-                    {ag.fotoVeiculo && (
-                      <a href={ag.fotoVeiculo} target="_blank" class="text-[10px] px-2 py-1 rounded border border-blue-200 text-blue-600 bg-blue-50 font-bold hover:bg-blue-100 flex items-center gap-1 transition-colors">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        Ver Foto
-                      </a>
-                    )}
-                  </div>
-
                   <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-3 border-t border-gray-100">
                     <div class="flex items-center gap-1">
                       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                       {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
                     </div>
-                    <span class="text-gray-400">{ag.duracaoMinutos} min</span>
                   </div>
+
+                  <button 
+                    type="button" 
+                    class="btn-avaliar mt-4 w-full py-3 bg-black hover:bg-purple-600 text-white font-bold rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-black/20"
+                    data-id={ag.id}
+                    data-cliente={ag.clienteNome}
+                    data-zap={ag.clienteWhatsapp}
+                    data-veiculo={ag.veiculoModelo}
+                    data-placa={ag.veiculoPlaca}
+                    data-servico={ag.servicoDesejado}
+                    data-sujeira={getIconeSujeira(ag.nivelSujeira)}
+                    data-corsujeira={getCorSujeira(ag.nivelSujeira)}
+                    data-foto={ag.fotoVeiculo || ''}
+                    data-datahora={`${new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às ${ag.horaAgendamento}`}
+                    data-duracao={ag.duracaoMinutos}
+                    data-detalhes={ag.detalhesEstadoCarro || 'Sem detalhes adicionais.'}
+                    data-conflito={ag.temConflito ? 'sim' : 'nao'}
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                    Avaliar Solicitação
+                  </button>
+
                 </div>
               ))
             )}
@@ -173,17 +301,32 @@ const getCorSujeira = (nivel: string | null) => {
               </div>
             ) : (
               confirmados.map(ag => (
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors group border-l-4 border-l-green-500">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors group border-l-4 border-l-green-500 flex flex-col">
                   <div class="flex justify-between items-start mb-2">
                     <h4 class="font-bold text-black">{ag.veiculoModelo}</h4>
                     <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
                   </div>
-                  <p class="text-sm text-gray-800 font-medium mb-3">{ag.servicoDesejado}</p>
-                  <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-2 border-t border-gray-100">
-                    <div class="flex items-center gap-1">
-                      <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <p class="text-sm text-gray-800 font-medium">{ag.servicoDesejado}</p>
+                  <p class="text-xs text-gray-500 mb-3">{ag.clienteNome}</p>
+
+                  <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-3 border-t border-gray-100">
+                    <div class="flex items-center gap-1 text-green-600 font-bold">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                       {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
                     </div>
+                  </div>
+
+                  <div class="mt-4 pt-3 border-t border-gray-100 flex gap-2">
+                    <a href={`https://wa.me/55${apenasNumeros(ag.clienteWhatsapp)}?text=Olá ${ag.clienteNome.split(' ')[0]}, seu horário para ${ag.servicoDesejado} está confirmado para o dia ${new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às ${ag.horaAgendamento}. Te aguardamos no estúdio!`} target="_blank" class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs transition-colors flex justify-center items-center gap-1">
+                      WhatsApp
+                    </a>
+                    <form method="POST" class="flex-1">
+                      <input type="hidden" name="action" value="finish" />
+                      <input type="hidden" name="agendamentoId" value={ag.id} />
+                      <button type="submit" class="w-full py-2 bg-black hover:bg-gray-800 text-white font-bold rounded-lg text-xs transition-colors flex justify-center items-center gap-1">
+                        Concluir
+                      </button>
+                    </form>
                   </div>
                 </div>
               ))
@@ -196,3 +339,75 @@ const getCorSujeira = (nivel: string | null) => {
 
   </div>
 </DashboardLayout>
+
+<script>
+  // LÓGICA DO MODAL DE AVALIAÇÃO
+  const modal = document.getElementById('modal-avaliacao') as HTMLDialogElement;
+  const btnFechar = document.getElementById('btn-fechar-modal');
+  const botoesAvaliar = document.querySelectorAll('.btn-avaliar');
+
+  if (modal && btnFechar) {
+    btnFechar.addEventListener('click', () => modal.close());
+    
+    // Fechar ao clicar fora do modal
+    modal.addEventListener('click', (e) => {
+      const dialogDimensions = modal.getBoundingClientRect();
+      if (
+        e.clientX < dialogDimensions.left ||
+        e.clientX > dialogDimensions.right ||
+        e.clientY < dialogDimensions.top ||
+        e.clientY > dialogDimensions.bottom
+      ) {
+        modal.close();
+      }
+    });
+
+    botoesAvaliar.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLButtonElement;
+        
+        // Pega os dados escondidos no botão
+        const dataset = target.dataset;
+
+        // Preenche o Modal
+        (document.getElementById('modal-cliente') as HTMLElement).innerText = dataset.cliente || '';
+        (document.getElementById('modal-zap') as HTMLElement).innerText = dataset.zap || '';
+        (document.getElementById('modal-veiculo') as HTMLElement).innerText = dataset.veiculo || '';
+        (document.getElementById('modal-placa') as HTMLElement).innerText = dataset.placa || '';
+        (document.getElementById('modal-servico') as HTMLElement).innerText = dataset.servico || '';
+        (document.getElementById('modal-detalhes') as HTMLElement).innerText = `"${dataset.detalhes}"`;
+        (document.getElementById('modal-datahora') as HTMLElement).innerText = dataset.datahora || '';
+        (document.getElementById('modal-duracao') as HTMLElement).innerText = dataset.duracao || '';
+        
+        // Sujeira (Visual)
+        const sujeiraEl = document.getElementById('modal-sujeira') as HTMLElement;
+        sujeiraEl.innerText = dataset.sujeira || '';
+        sujeiraEl.className = `text-xs px-2 py-1 rounded font-bold border ${dataset.corsujeira}`;
+
+        // Inputs Escondidos para Aprovar/Recusar
+        (document.getElementById('modal-input-aprovar') as HTMLInputElement).value = dataset.id || '';
+        (document.getElementById('modal-input-recusar') as HTMLInputElement).value = dataset.id || '';
+
+        // Foto
+        const fotoContainer = document.getElementById('modal-container-foto') as HTMLElement;
+        const fotoImg = document.getElementById('modal-foto') as HTMLImageElement;
+        if (dataset.foto && dataset.foto !== '') {
+          fotoImg.src = dataset.foto;
+          fotoContainer.classList.remove('hidden');
+        } else {
+          fotoContainer.classList.add('hidden');
+        }
+
+        // Alerta de Conflito
+        const alertaConflito = document.getElementById('modal-alerta-conflito') as HTMLElement;
+        if (dataset.conflito === 'sim') {
+          alertaConflito.classList.remove('hidden');
+        } else {
+          alertaConflito.classList.add('hidden');
+        }
+
+        modal.showModal();
+      });
+    });
+  }
+</script>
