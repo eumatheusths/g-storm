@@ -147,6 +147,17 @@ if (Astro.request.method === 'POST') {
                 <input type="tel" name="clienteWhatsapp" required placeholder="(00) 00000-0000" class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
               </div>
 
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Modelo Real</label>
+                  <input type="text" name="veiculoModelo" required placeholder="Ex: BMW 320i" class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Placa</label>
+                  <input type="text" name="veiculoPlaca" required placeholder="ABC-1234" class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all uppercase" />
+                </div>
+              </div>
+
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-1">Qual serviço você deseja?</label>
                 <select name="servicoDesejado" id="select-servico" required class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all appearance-none">
@@ -159,17 +170,6 @@ if (Astro.request.method === 'POST') {
                 <select name="categoriaVeiculo" id="select-porte" required disabled class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-gray-400 disabled:opacity-50 focus:outline-none focus:border-purple-500 transition-all appearance-none">
                   <option value="" disabled selected>Escolha o serviço primeiro...</option>
                   </select>
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">Modelo Real</label>
-                  <input type="text" name="veiculoModelo" required placeholder="Ex: BMW 320i" class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">Placa</label>
-                  <input type="text" name="veiculoPlaca" required placeholder="ABC-1234" class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all uppercase" />
-                </div>
               </div>
 
               <div>
@@ -211,6 +211,11 @@ if (Astro.request.method === 'POST') {
                   <img id="imagePreview" class="absolute inset-0 w-full h-full object-cover hidden opacity-80" />
                   <input id="fotoUpload" type="file" accept="image/*" class="hidden" capture="environment" />
                 </label>
+              </div>
+
+              <div id="price-display-container" class="hidden bg-gray-800/50 rounded-xl p-5 border border-gray-700 flex justify-between items-center mt-4">
+                <span class="text-gray-300 font-medium">Valor Estimado:</span>
+                <span id="price-display" class="text-2xl font-black text-green-400">R$ 0,00</span>
               </div>
 
               <button type="button" id="btn-ir-calendario" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg rounded-xl transition-all shadow-[0_0_20px_rgba(124,58,237,0.3)] mt-6 flex justify-center items-center gap-2">
@@ -263,19 +268,53 @@ if (Astro.request.method === 'POST') {
   const servicesData = servicesEl ? JSON.parse(servicesEl.getAttribute('data-services') || '[]') : [];
   const bookedSlots = bookedEl ? JSON.parse(bookedEl.getAttribute('data-booked') || '[]') : [];
 
-  // 2. ELEMENTOS DO DOM (SERVIÇOS)
+  // 2. ELEMENTOS DO DOM (SERVIÇOS E PREÇOS)
   const selectServico = document.getElementById('select-servico') as HTMLSelectElement;
   const selectPorte = document.getElementById('select-porte') as HTMLSelectElement;
   const inputDuracao = document.getElementById('duracaoMinutos') as HTMLInputElement;
+  const radiosSujeira = document.querySelectorAll('input[name="nivelSujeira"]');
+  const priceContainer = document.getElementById('price-display-container');
+  const priceDisplay = document.getElementById('price-display');
+
+  // FUNÇÃO MÁGICA: Calcula o preço baseando em Serviço + Porte + Sujeira
+  function calcularPrecoEstimado() {
+    const servicoEscolhido = selectServico.value;
+    const porteEscolhido = selectPorte.value;
+    let nivelEscolhido = "Pouco"; // Valor padrão do checked
+
+    radiosSujeira.forEach((radio: any) => {
+      if(radio.checked) nivelEscolhido = radio.value;
+    });
+
+    if(!servicoEscolhido || !porteEscolhido) {
+      if(priceContainer) priceContainer.classList.add('hidden');
+      return;
+    }
+
+    const configExata = servicesData.find((s: any) => s.nomeServico === servicoEscolhido && s.categoriaVeiculo === porteEscolhido);
+
+    if (configExata) {
+      let preco = 0;
+      if(nivelEscolhido === 'Pouco') preco = configExata.precoPoucoSujo;
+      else if(nivelEscolhido === 'Médio') preco = configExata.precoMedio;
+      else if(nivelEscolhido === 'Muito') preco = configExata.precoMuitoSujo;
+
+      if (preco && preco > 0) {
+        if(priceDisplay) priceDisplay.innerText = `R$ ${preco},00`;
+        if(priceContainer) priceContainer.classList.remove('hidden');
+      } else {
+        if(priceDisplay) priceDisplay.innerText = `Sob avaliação`;
+        if(priceContainer) priceContainer.classList.remove('hidden');
+      }
+    }
+  }
 
   if (selectServico && servicesData.length > 0) {
-    // Extrai nomes únicos de serviços
     const uniqueServices = [...new Set(servicesData.map((s: any) => s.nomeServico))];
     uniqueServices.forEach(nome => {
       selectServico.add(new Option(nome as string, nome as string));
     });
 
-    // Quando escolhe o serviço, destrava o porte
     selectServico.addEventListener('change', (e) => {
       const servicoEscolhido = (e.target as HTMLSelectElement).value;
       const portesDisponiveis = servicesData.filter((s: any) => s.nomeServico === servicoEscolhido);
@@ -288,17 +327,22 @@ if (Astro.request.method === 'POST') {
       selectPorte.disabled = false;
       selectPorte.classList.remove('text-gray-400');
       selectPorte.classList.add('text-white');
+      calcularPrecoEstimado(); // Recalcula
     });
 
-    // Quando escolhe o porte, acha o tempo de duração
     selectPorte.addEventListener('change', (e) => {
       const servicoEscolhido = selectServico.value;
       const porteEscolhido = (e.target as HTMLSelectElement).value;
-      
       const configExata = servicesData.find((s: any) => s.nomeServico === servicoEscolhido && s.categoriaVeiculo === porteEscolhido);
       if (configExata) {
         inputDuracao.value = configExata.duracaoMinutos;
       }
+      calcularPrecoEstimado(); // Recalcula
+    });
+
+    // Recalcula se o cliente mudar a sujeira
+    radiosSujeira.forEach(radio => {
+      radio.addEventListener('change', calcularPrecoEstimado);
     });
   }
 
@@ -359,10 +403,8 @@ if (Astro.request.method === 'POST') {
   const hiddenDate = document.getElementById('hiddenDate') as HTMLInputElement;
   const hiddenTime = document.getElementById('hiddenTime') as HTMLInputElement;
 
-  // Navegação
   if (btnIrCalendario && btnVoltar && step1 && step2) {
     btnIrCalendario.addEventListener('click', () => {
-      // Validação simples antes de ir pro calendário
       const form = document.getElementById('form-agendamento') as HTMLFormElement;
       if(!form.checkValidity()) {
         form.reportValidity();
@@ -378,12 +420,9 @@ if (Astro.request.method === 'POST') {
     });
   }
 
-  // Lógica do Calendário com Cálculo de Blocos
   if (datePicker && timeGrid) {
     const today = new Date().toISOString().split('T')[0];
     datePicker.min = today;
-
-    // Horários de 1 em 1 hora
     const horasFuncionamento = [8, 9, 10, 11, 13, 14, 15, 16, 17]; 
 
     datePicker.addEventListener('change', (e) => {
@@ -395,11 +434,8 @@ if (Astro.request.method === 'POST') {
       timeGrid.innerHTML = '';
       btnFinalizar?.classList.add('hidden');
 
-      // Quantos "blocos de hora" esse serviço ocupa?
       const duracaoServico = parseInt(inputDuracao.value || '60');
       const blocosNecessarios = Math.ceil(duracaoServico / 60);
-
-      // Filtra os agendamentos já marcados para o dia escolhido
       const marcadosNoDia = bookedSlots.filter((slot: any) => slot.date === dataEscolhida);
 
       horasFuncionamento.forEach(horaInt => {
@@ -410,20 +446,12 @@ if (Astro.request.method === 'POST') {
         
         let slotOcupado = false;
 
-        // Verifica se ESSA hora bate com algum serviço que já está rolando
         marcadosNoDia.forEach((marcado: any) => {
            const horaMarcada = parseInt(marcado.time.split(':')[0]);
            const blocosOcupados = Math.ceil(marcado.duracao / 60);
            
-           // Se a hora que estamos gerando cai no meio de um serviço marcado, bloqueia!
-           if (horaInt >= horaMarcada && horaInt < (horaMarcada + blocosOcupados)) {
-               slotOcupado = true;
-           }
-           
-           // Evita que o novo serviço "atropele" o próximo se for muito longo
-           if (horaInt < horaMarcada && (horaInt + blocosNecessarios) > horaMarcada) {
-               slotOcupado = true;
-           }
+           if (horaInt >= horaMarcada && horaInt < (horaMarcada + blocosOcupados)) slotOcupado = true;
+           if (horaInt < horaMarcada && (horaInt + blocosNecessarios) > horaMarcada) slotOcupado = true;
         });
 
         if (slotOcupado) {
@@ -432,7 +460,6 @@ if (Astro.request.method === 'POST') {
         } else {
           btn.className = 'py-3 rounded-xl bg-gray-900 border border-gray-700 text-white hover:border-purple-500 transition-all font-bold text-sm time-btn';
           btn.onclick = () => {
-            // Lógica visual de seleção
             document.querySelectorAll('.time-btn').forEach(b => {
               b.classList.remove('bg-purple-600', 'border-purple-500', 'shadow-[0_0_15px_rgba(139,92,246,0.3)]');
               b.classList.add('bg-gray-900', 'border-gray-700');
