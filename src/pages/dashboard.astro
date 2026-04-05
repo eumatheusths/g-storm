@@ -18,7 +18,17 @@ if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('action')?.toString();
 
-  if (action === 'create_slug') {
+  // 1. SALVAR DADOS FISCAIS E CONTATO (NOVO)
+  if (action === 'save_fiscal') {
+    const cpfCnpj = formData.get('cpfCnpj')?.toString().replace(/\D/g, ''); // Limpa traços e pontos
+    const telefone = formData.get('telefone')?.toString().replace(/\D/g, '');
+    
+    if (cpfCnpj && telefone) {
+      await db.update(users).set({ cpfCnpj, telefone }).where(eq(users.email, session.user.email));
+    }
+  }
+  // 2. SALVAR LINK DA EMPRESA
+  else if (action === 'create_slug') {
     try {
       const companyName = formData.get('companyName')?.toString();
       let slug = formData.get('slug')?.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-');
@@ -29,6 +39,7 @@ if (Astro.request.method === 'POST') {
       erroSlug = true;
     }
   } 
+  // AÇÕES DE AGENDAMENTO
   else if (action === 'approve') {
     const agendamentoId = formData.get('agendamentoId')?.toString();
     if (agendamentoId) await db.update(agendamentos).set({ status: 'confirmado' }).where(eq(agendamentos.id, agendamentoId));
@@ -41,6 +52,9 @@ if (Astro.request.method === 'POST') {
     const agendamentoId = formData.get('agendamentoId')?.toString();
     if (agendamentoId) await db.update(agendamentos).set({ status: 'concluido' }).where(eq(agendamentos.id, agendamentoId));
   }
+  
+  // Refresh limpo após POST
+  return Astro.redirect('/dashboard');
 }
 
 const userDbArray = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1);
@@ -62,13 +76,11 @@ pendentes = pendentes.map(pendente => {
   const endA = startA + pendente.duracaoMinutos;
   const dataA = new Date(pendente.dataAgendamento).getTime();
 
-  // Verifica se bate de frente com algum Confirmado
   for (const conf of confirmados) {
     const dataB = new Date(conf.dataAgendamento).getTime();
     if (dataA === dataB) {
       const startB = timeToMins(conf.horaAgendamento);
       const endB = startB + conf.duracaoMinutos;
-      // Lógica de intersecção de tempo
       if (startA < endB && endA > startB) {
         temConflito = true;
         break;
@@ -112,7 +124,6 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
         </div>
 
         <div class="overflow-y-auto p-6 space-y-6">
-          
           <div id="modal-alerta-conflito" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
             <svg class="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             <div>
@@ -158,7 +169,6 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
               </span>
             </div>
           </div>
-
         </div>
 
         <div class="p-6 border-t border-gray-100 bg-white grid grid-cols-2 gap-4">
@@ -182,7 +192,36 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
       </div>
     </dialog>
 
-    {!userDb.slug ? (
+    {!userDb.cpfCnpj ? (
+      <div class="bg-black text-white p-8 rounded-2xl shadow-xl relative overflow-hidden border border-gray-800">
+        <div class="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-purple-600/20 to-transparent pointer-events-none"></div>
+        <div class="relative z-10 max-w-xl">
+          <div class="w-12 h-12 bg-purple-600/20 text-purple-400 rounded-xl flex items-center justify-center mb-6">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          </div>
+          <h2 class="text-2xl font-bold mb-2">Complete seu Cadastro</h2>
+          <p class="text-gray-400 mb-6 leading-relaxed">Estes dados são necessários para a segurança da conta e emissão de cobranças do seu plano.</p>
+          
+          <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="save_fiscal" />
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1">CPF ou CNPJ (Somente números)</label>
+              <input type="text" name="cpfCnpj" required placeholder="00000000000" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1">WhatsApp / Telefone com DDD</label>
+              <input type="text" name="telefone" required placeholder="43999999999" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
+            </div>
+            <button type="submit" class="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all">
+              Avançar ->
+            </button>
+          </form>
+        </div>
+      </div>
+    ) : 
+    
+    /* PASSO 2: LINK DA EMPRESA */
+    !userDb.slug ? (
       <div class="bg-black text-white p-8 rounded-2xl shadow-xl relative overflow-hidden border border-gray-800">
         <div class="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-purple-600/20 to-transparent pointer-events-none"></div>
         <div class="relative z-10 max-w-xl">
@@ -199,6 +238,7 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
                 <span class="inline-flex items-center px-4 bg-gray-800 border border-r-0 border-gray-700 rounded-l-xl text-gray-400 text-sm">g-storm.vercel.app/agendar/</span>
                 <input type="text" name="slug" required placeholder="studio-marqe" class="flex-1 w-full bg-gray-900 border border-gray-700 rounded-r-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
               </div>
+              {erroSlug && <p class="text-red-400 text-xs mt-2">Esse link já está em uso por outra empresa. Tente outro.</p>}
             </div>
             <button type="submit" class="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all">
               Gerar Meu Link
@@ -207,141 +247,141 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
         </div>
       </div>
     ) : (
-      <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Seu Link de Agendamento</h3>
-          <span class="text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-lg border border-purple-100 select-all">{urlBase}{userDb.slug}</span>
-        </div>
-        <button onclick={`navigator.clipboard.writeText('${urlBase}${userDb.slug}'); alert('Link copiado com sucesso!');`} class="px-5 py-2.5 bg-black hover:bg-gray-800 text-white font-semibold rounded-xl text-sm shadow-md">
-          Copiar Link
-        </button>
-      </div>
-    )}
-
-    {userDb.slug && (
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-        
-        <div class="bg-gray-100 rounded-2xl p-4 border border-gray-200">
-          <div class="flex items-center justify-between mb-4 px-2">
-            <h3 class="font-bold text-gray-700 flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span> Pendentes
-            </h3>
-            <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full">{pendentes.length}</span>
+      
+      /* PASSO 3: PAINEL PRINCIPAL */
+      <>
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Seu Link de Agendamento</h3>
+            <span class="text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-lg border border-purple-100 select-all">{urlBase}{userDb.slug}</span>
           </div>
+          <button onclick={`navigator.clipboard.writeText('${urlBase}${userDb.slug}'); alert('Link copiado com sucesso!');`} class="px-5 py-2.5 bg-black hover:bg-gray-800 text-white font-semibold rounded-xl text-sm shadow-md">
+            Copiar Link
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
           
-          <div class="space-y-3">
-            {pendentes.length === 0 ? (
-              <div class="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-xl">
-                Nenhuma solicitação nova.
-              </div>
-            ) : (
-              pendentes.map(ag => (
-                <div class={`bg-white p-4 rounded-xl shadow-sm border transition-colors group flex flex-col ${ag.temConflito ? 'border-red-400 shadow-red-500/10' : 'border-gray-200 hover:border-purple-300'}`}>
-                  
-                  {ag.temConflito && (
-                    <div class="mb-3 flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 py-1 px-2 rounded w-fit">
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                      Conflito de Horário!
-                    </div>
-                  )}
-
-                  <div class="flex justify-between items-start mb-2">
-                    <h4 class="font-bold text-black">{ag.veiculoModelo} <span class="text-xs text-gray-400 font-normal">({ag.categoriaVeiculo})</span></h4>
-                    <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
-                  </div>
-                  
-                  <p class="text-sm text-gray-800 font-medium mb-3">{ag.servicoDesejado}</p>
-                  
-                  <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-3 border-t border-gray-100">
-                    <div class="flex items-center gap-1">
-                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                      {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
-                    </div>
-                  </div>
-
-                  <button 
-                    type="button" 
-                    class="btn-avaliar mt-4 w-full py-3 bg-black hover:bg-purple-600 text-white font-bold rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-black/20"
-                    data-id={ag.id}
-                    data-cliente={ag.clienteNome}
-                    data-zap={ag.clienteWhatsapp}
-                    data-veiculo={ag.veiculoModelo}
-                    data-placa={ag.veiculoPlaca}
-                    data-servico={ag.servicoDesejado}
-                    data-sujeira={getIconeSujeira(ag.nivelSujeira)}
-                    data-corsujeira={getCorSujeira(ag.nivelSujeira)}
-                    data-foto={ag.fotoVeiculo || ''}
-                    data-datahora={`${new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às ${ag.horaAgendamento}`}
-                    data-duracao={ag.duracaoMinutos}
-                    data-detalhes={ag.detalhesEstadoCarro || 'Sem detalhes adicionais.'}
-                    data-conflito={ag.temConflito ? 'sim' : 'nao'}
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                    Avaliar Solicitação
-                  </button>
-
+          <div class="bg-gray-100 rounded-2xl p-4 border border-gray-200">
+            <div class="flex items-center justify-between mb-4 px-2">
+              <h3 class="font-bold text-gray-700 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span> Pendentes
+              </h3>
+              <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full">{pendentes.length}</span>
+            </div>
+            
+            <div class="space-y-3">
+              {pendentes.length === 0 ? (
+                <div class="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-xl">
+                  Nenhuma solicitação nova.
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              ) : (
+                pendentes.map(ag => (
+                  <div class={`bg-white p-4 rounded-xl shadow-sm border transition-colors group flex flex-col ${ag.temConflito ? 'border-red-400 shadow-red-500/10' : 'border-gray-200 hover:border-purple-300'}`}>
+                    
+                    {ag.temConflito && (
+                      <div class="mb-3 flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 py-1 px-2 rounded w-fit">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Conflito de Horário!
+                      </div>
+                    )}
 
-        <div class="bg-gray-100 rounded-2xl p-4 border border-gray-200">
-          <div class="flex items-center justify-between mb-4 px-2">
-            <h3 class="font-bold text-gray-700 flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span> Confirmados
-            </h3>
-            <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full">{confirmados.length}</span>
-          </div>
-          
-          <div class="space-y-3">
-            {confirmados.length === 0 ? (
-              <div class="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-xl">
-                Nenhum box reservado.
-              </div>
-            ) : (
-              confirmados.map(ag => (
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors group border-l-4 border-l-green-500 flex flex-col">
-                  <div class="flex justify-between items-start mb-2">
-                    <h4 class="font-bold text-black">{ag.veiculoModelo}</h4>
-                    <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
+                    <div class="flex justify-between items-start mb-2">
+                      <h4 class="font-bold text-black">{ag.veiculoModelo} <span class="text-xs text-gray-400 font-normal">({ag.categoriaVeiculo})</span></h4>
+                      <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
+                    </div>
+                    
+                    <p class="text-sm text-gray-800 font-medium mb-3">{ag.servicoDesejado}</p>
+                    
+                    <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-3 border-t border-gray-100">
+                      <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
+                      </div>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      class="btn-avaliar mt-4 w-full py-3 bg-black hover:bg-purple-600 text-white font-bold rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-black/20"
+                      data-id={ag.id}
+                      data-cliente={ag.clienteNome}
+                      data-zap={ag.clienteWhatsapp}
+                      data-veiculo={ag.veiculoModelo}
+                      data-placa={ag.veiculoPlaca}
+                      data-servico={ag.servicoDesejado}
+                      data-sujeira={getIconeSujeira(ag.nivelSujeira)}
+                      data-corsujeira={getCorSujeira(ag.nivelSujeira)}
+                      data-foto={ag.fotoVeiculo || ''}
+                      data-datahora={`${new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às ${ag.horaAgendamento}`}
+                      data-duracao={ag.duracaoMinutos}
+                      data-detalhes={ag.detalhesEstadoCarro || 'Sem detalhes adicionais.'}
+                      data-conflito={ag.temConflito ? 'sim' : 'nao'}
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                      Avaliar Solicitação
+                    </button>
                   </div>
-                  <p class="text-sm text-gray-800 font-medium">{ag.servicoDesejado}</p>
-                  <p class="text-xs text-gray-500 mb-3">{ag.clienteNome}</p>
+                ))
+              )}
+            </div>
+          </div>
 
-                  <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-3 border-t border-gray-100">
-                    <div class="flex items-center gap-1 text-green-600 font-bold">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                      {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
+          <div class="bg-gray-100 rounded-2xl p-4 border border-gray-200">
+            <div class="flex items-center justify-between mb-4 px-2">
+              <h3 class="font-bold text-gray-700 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span> Confirmados
+              </h3>
+              <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full">{confirmados.length}</span>
+            </div>
+            
+            <div class="space-y-3">
+              {confirmados.length === 0 ? (
+                <div class="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-xl">
+                  Nenhum box reservado.
+                </div>
+              ) : (
+                confirmados.map(ag => (
+                  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors group border-l-4 border-l-green-500 flex flex-col">
+                    <div class="flex justify-between items-start mb-2">
+                      <h4 class="font-bold text-black">{ag.veiculoModelo}</h4>
+                      <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
+                    </div>
+                    <p class="text-sm text-gray-800 font-medium">{ag.servicoDesejado}</p>
+                    <p class="text-xs text-gray-500 mb-3">{ag.clienteNome}</p>
+
+                    <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-3 border-t border-gray-100">
+                      <div class="flex items-center gap-1 text-green-600 font-bold">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
+                      </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex gap-2">
+                      <a href={`https://wa.me/55${apenasNumeros(ag.clienteWhatsapp)}?text=Olá ${ag.clienteNome.split(' ')[0]}, seu horário para ${ag.servicoDesejado} está confirmado para o dia ${new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às ${ag.horaAgendamento}. Te aguardamos no estúdio!`} target="_blank" class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs transition-colors flex justify-center items-center gap-1">
+                        WhatsApp
+                      </a>
+                      <form method="POST" class="flex-1">
+                        <input type="hidden" name="action" value="finish" />
+                        <input type="hidden" name="agendamentoId" value={ag.id} />
+                        <button type="submit" class="w-full py-2 bg-black hover:bg-gray-800 text-white font-bold rounded-lg text-xs transition-colors flex justify-center items-center gap-1">
+                          Concluir
+                        </button>
+                      </form>
                     </div>
                   </div>
-
-                  <div class="mt-4 pt-3 border-t border-gray-100 flex gap-2">
-                    <a href={`https://wa.me/55${apenasNumeros(ag.clienteWhatsapp)}?text=Olá ${ag.clienteNome.split(' ')[0]}, seu horário para ${ag.servicoDesejado} está confirmado para o dia ${new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às ${ag.horaAgendamento}. Te aguardamos no estúdio!`} target="_blank" class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs transition-colors flex justify-center items-center gap-1">
-                      WhatsApp
-                    </a>
-                    <form method="POST" class="flex-1">
-                      <input type="hidden" name="action" value="finish" />
-                      <input type="hidden" name="agendamentoId" value={ag.id} />
-                      <button type="submit" class="w-full py-2 bg-black hover:bg-gray-800 text-white font-bold rounded-lg text-xs transition-colors flex justify-center items-center gap-1">
-                        Concluir
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
 
-      </div>
+        </div>
+      </>
     )}
 
   </div>
 </DashboardLayout>
 
 <script>
-  // LÓGICA DO MODAL DE AVALIAÇÃO
   const modal = document.getElementById('modal-avaliacao') as HTMLDialogElement;
   const btnFechar = document.getElementById('btn-fechar-modal');
   const botoesAvaliar = document.querySelectorAll('.btn-avaliar');
@@ -349,7 +389,6 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
   if (modal && btnFechar) {
     btnFechar.addEventListener('click', () => modal.close());
     
-    // Fechar ao clicar fora do modal
     modal.addEventListener('click', (e) => {
       const dialogDimensions = modal.getBoundingClientRect();
       if (
@@ -365,11 +404,8 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
     botoesAvaliar.forEach(btn => {
       btn.addEventListener('click', (e) => {
         const target = e.currentTarget as HTMLButtonElement;
-        
-        // Pega os dados escondidos no botão
         const dataset = target.dataset;
 
-        // Preenche o Modal
         (document.getElementById('modal-cliente') as HTMLElement).innerText = dataset.cliente || '';
         (document.getElementById('modal-zap') as HTMLElement).innerText = dataset.zap || '';
         (document.getElementById('modal-veiculo') as HTMLElement).innerText = dataset.veiculo || '';
@@ -379,16 +415,13 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
         (document.getElementById('modal-datahora') as HTMLElement).innerText = dataset.datahora || '';
         (document.getElementById('modal-duracao') as HTMLElement).innerText = dataset.duracao || '';
         
-        // Sujeira (Visual)
         const sujeiraEl = document.getElementById('modal-sujeira') as HTMLElement;
         sujeiraEl.innerText = dataset.sujeira || '';
         sujeiraEl.className = `text-xs px-2 py-1 rounded font-bold border ${dataset.corsujeira}`;
 
-        // Inputs Escondidos para Aprovar/Recusar
         (document.getElementById('modal-input-aprovar') as HTMLInputElement).value = dataset.id || '';
         (document.getElementById('modal-input-recusar') as HTMLInputElement).value = dataset.id || '';
 
-        // Foto
         const fotoContainer = document.getElementById('modal-container-foto') as HTMLElement;
         const fotoImg = document.getElementById('modal-foto') as HTMLImageElement;
         if (dataset.foto && dataset.foto !== '') {
@@ -398,7 +431,6 @@ const apenasNumeros = (texto: string) => texto.replace(/\D/g, '');
           fotoContainer.classList.add('hidden');
         }
 
-        // Alerta de Conflito
         const alertaConflito = document.getElementById('modal-alerta-conflito') as HTMLElement;
         if (dataset.conflito === 'sim') {
           alertaConflito.classList.remove('hidden');

@@ -17,8 +17,13 @@ export const users = pgTable("user", {
     return data;
   }),
   
+  // DADOS DA EMPRESA E LINK
   slug: text("slug").unique(),
   companyName: text("companyName"),
+  
+  // NOVOS CAMPOS: FISCAL E CONTATO
+  cpfCnpj: text("cpfCnpj"),
+  telefone: text("telefone"),
 });
 
 // 2. Tabela: Catálogo de Serviços, Tempos e Preços Dinâmicos
@@ -30,13 +35,12 @@ export const configuracoesServico = pgTable("configuracoes_servico", {
   categoriaVeiculo: text("categoriaVeiculo").notNull(), 
   duracaoMinutos: integer("duracaoMinutos").notNull(), 
   
-  // PREÇOS DINÂMICOS POR NÍVEL DE SUJEIRA
   precoPoucoSujo: integer("precoPoucoSujo"), 
   precoMedio: integer("precoMedio"), 
   precoMuitoSujo: integer("precoMuitoSujo"), 
 });
 
-// 3. Tabela: Agendamentos (Única e Final)
+// 3. Tabela: Agendamentos
 export const agendamentos = pgTable("agendamentos", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -52,7 +56,6 @@ export const agendamentos = pgTable("agendamentos", {
   duracaoMinutos: integer("duracaoMinutos").notNull(),
   detalhesEstadoCarro: text("detalhesEstadoCarro"),
   
-  // CAMPOS: Foto e Sujeira
   nivelSujeira: text("nivelSujeira").default("Médio"), 
   fotoVeiculo: text("fotoVeiculo"), 
   

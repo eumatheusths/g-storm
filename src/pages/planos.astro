@@ -1,0 +1,105 @@
+---
+// src/pages/planos.astro
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { getSession } from 'auth-astro/server';
+
+const session = await getSession(Astro.request);
+if (!session?.user?.email) {
+  return Astro.redirect('/login');
+}
+---
+
+<DashboardLayout>
+  <div class="max-w-5xl mx-auto py-8 relative">
+    
+    <div id="loading-overlay" class="hidden absolute inset-0 z-50 bg-gray-50/80 backdrop-blur-sm flex-col items-center justify-center rounded-3xl">
+        <svg class="animate-spin w-12 h-12 text-purple-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <p class="text-xl font-bold text-black tracking-tight">Gerando ambiente seguro...</p>
+    </div>
+
+    <div class="text-center mb-12">
+      <h1 class="text-3xl md:text-5xl font-black text-black tracking-tight mb-4">Escolha o plano ideal para a sua estética</h1>
+      <p class="text-gray-500 text-lg">Potencialize seu estúdio com ferramentas de elite.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+      
+      <div class="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm flex flex-col hover:border-purple-300 transition-all">
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Mensal</h3>
+        <p class="text-gray-500 text-sm mb-6 h-10">Flexibilidade total para o seu negócio.</p>
+        <div class="mb-6">
+          <span class="text-4xl font-black text-black">R$ 67,90</span>
+          <span class="text-gray-500">/mês</span>
+        </div>
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-center gap-3 text-sm text-gray-700 font-medium"><svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Agendamentos Ilimitados</li>
+          <li class="flex items-center gap-3 text-sm text-gray-700 font-medium"><svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Link Personalizado</li>
+        </ul>
+        <button class="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all btn-assinar" data-plano="mensal">
+          Assinar Mensal
+        </button>
+      </div>
+
+      <div class="bg-black rounded-3xl p-8 border-2 border-purple-500 shadow-2xl shadow-purple-900/20 flex flex-col relative transform md:-translate-y-4">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-600 to-purple-400 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-lg">
+          Melhor Oferta
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Anual</h3>
+        <p class="text-gray-400 text-sm mb-6 h-10">Economia máxima para estúdios profissionais.</p>
+        <div class="mb-6">
+          <span class="text-4xl font-black text-white">R$ 49,90</span>
+          <span class="text-gray-400">/mês</span>
+          <p class="text-xs text-purple-300 mt-1">Cobrado R$ 598,80 anualmente</p>
+        </div>
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-center gap-3 text-sm text-gray-300 font-medium"><svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Tudo do plano Mensal</li>
+          <li class="flex items-center gap-3 text-sm text-gray-300 font-medium"><svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Prioridade no Suporte</li>
+        </ul>
+        <button class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(124,58,237,0.4)] btn-assinar" data-plano="anual">
+          Assinar Anual
+        </button>
+      </div>
+
+      <div class="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm flex flex-col hover:border-purple-300 transition-all">
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Semestral</h3>
+        <p class="text-gray-500 text-sm mb-6 h-10">O equilíbrio para o seu planejamento.</p>
+        <div class="mb-6">
+          <span class="text-4xl font-black text-black">R$ 57,90</span>
+          <span class="text-gray-500">/mês</span>
+          <p class="text-xs text-gray-400 mt-1">Cobrado R$ 347,40 semestralmente</p>
+        </div>
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-center gap-3 text-sm text-gray-700 font-medium"><svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Tudo do plano Mensal</li>
+          <li class="flex items-center gap-3 text-sm text-gray-700 font-medium"><svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Selo PRO no Link</li>
+        </ul>
+        <button class="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all btn-assinar" data-plano="semestral">
+          Assinar Semestral
+        </button>
+      </div>
+
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  const botoes = document.querySelectorAll('.btn-assinar');
+  const loadingOverlay = document.getElementById('loading-overlay');
+
+  botoes.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const plano = (e.currentTarget as HTMLButtonElement).dataset.plano;
+      if (loadingOverlay) { loadingOverlay.classList.remove('hidden'); loadingOverlay.classList.add('flex'); }
+
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plano })
+        });
+        const data = await res.json();
+        if (data.success && data.checkoutUrl) { window.location.href = data.checkoutUrl; } 
+        else { alert('Erro: ' + (data.error || 'Tente novamente.')); loadingOverlay?.classList.add('hidden'); }
+      } catch (err) { alert('Erro de conexão.'); loadingOverlay?.classList.add('hidden'); }
+    });
+  });
+</script>
