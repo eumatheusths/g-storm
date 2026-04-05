@@ -18,18 +18,17 @@ if (Astro.request.method === 'POST') {
   try {
     const formData = await Astro.request.formData();
     const companyName = formData.get('companyName')?.toString();
-    // Transforma "Estética Premium" em "estetica-premium"
     let slug = formData.get('slug')?.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-');
 
     if (companyName && slug) {
       await db.update(users).set({ companyName, slug }).where(eq(users.email, session.user.email));
     }
   } catch (e) {
-    erroSlug = true; // Caso o slug já exista para outra pessoa
+    erroSlug = true;
   }
 }
 
-// Busca os dados do usuário logado
+// Busca usuário logado
 const userDbArray = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1);
 const userDb = userDbArray[0];
 
@@ -41,6 +40,18 @@ const pendentes = listaAgendamentos.filter(a => a.status === 'pendente');
 const confirmados = listaAgendamentos.filter(a => a.status === 'confirmado');
 
 const urlBase = "https://g-storm.vercel.app/agendar/";
+
+// Função auxiliar para renderizar o ícone de sujeira
+const getIconeSujeira = (nivel: string | null) => {
+  if (nivel === 'Muito') return '🚜 Muito Sujo';
+  if (nivel === 'Pouco') return '✨ Pouco Sujo';
+  return '🛣️ Médio';
+};
+const getCorSujeira = (nivel: string | null) => {
+  if (nivel === 'Muito') return 'text-red-600 bg-red-50 border-red-200';
+  if (nivel === 'Pouco') return 'text-green-600 bg-green-50 border-green-200';
+  return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+};
 ---
 
 <DashboardLayout>
@@ -59,22 +70,22 @@ const urlBase = "https://g-storm.vercel.app/agendar/";
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
           </div>
           <h2 class="text-2xl font-bold mb-2">Configure seu Link de Agendamento</h2>
-          <p class="text-gray-400 mb-6 leading-relaxed">Crie o link exclusivo da sua estética para enviar no WhatsApp dos clientes. Eles poderão preencher o quiz de pré-atendimento e escolher datas disponíveis.</p>
+          <p class="text-gray-400 mb-6 leading-relaxed">Crie o link exclusivo da sua estética para enviar no WhatsApp dos clientes.</p>
           
           <form method="POST" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-300 mb-1">Nome da sua Estética</label>
-              <input type="text" name="companyName" required placeholder="Ex: Studio Marqé Premium" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all" />
+              <input type="text" name="companyName" required placeholder="Ex: Studio Marqé Premium" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-300 mb-1">Nome do Link (URL)</label>
               <div class="flex">
                 <span class="inline-flex items-center px-4 bg-gray-800 border border-r-0 border-gray-700 rounded-l-xl text-gray-400 text-sm">g-storm.vercel.app/agendar/</span>
-                <input type="text" name="slug" required placeholder="studio-marqe" class="flex-1 w-full bg-gray-900 border border-gray-700 rounded-r-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all" />
+                <input type="text" name="slug" required placeholder="studio-marqe" class="flex-1 w-full bg-gray-900 border border-gray-700 rounded-r-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all" />
               </div>
               {erroSlug && <p class="text-red-400 text-xs mt-2">Esse link já está em uso por outra empresa. Tente outro.</p>}
             </div>
-            <button type="submit" class="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-purple-900/50">
+            <button type="submit" class="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all">
               Gerar Meu Link
             </button>
           </form>
@@ -113,17 +124,33 @@ const urlBase = "https://g-storm.vercel.app/agendar/";
               </div>
             ) : (
               pendentes.map(ag => (
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer group">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-300 transition-colors group">
                   <div class="flex justify-between items-start mb-2">
-                    <h4 class="font-bold text-black">{ag.veiculoModelo}</h4>
+                    <h4 class="font-bold text-black">{ag.veiculoModelo} <span class="text-xs text-gray-400 font-normal">({ag.categoriaVeiculo})</span></h4>
                     <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
                   </div>
-                  <p class="text-sm text-gray-500 mb-3">{ag.clienteNome}</p>
-                  <div class="flex items-center justify-between text-xs font-medium text-gray-500">
+                  
+                  <p class="text-sm text-gray-800 font-medium">{ag.servicoDesejado}</p>
+                  <p class="text-xs text-gray-500 mb-3">{ag.clienteNome} • {ag.clienteWhatsapp}</p>
+                  
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class={`text-[10px] px-2 py-1 rounded border font-bold ${getCorSujeira(ag.nivelSujeira)}`}>
+                      {getIconeSujeira(ag.nivelSujeira)}
+                    </span>
+                    {ag.fotoVeiculo && (
+                      <a href={ag.fotoVeiculo} target="_blank" class="text-[10px] px-2 py-1 rounded border border-blue-200 text-blue-600 bg-blue-50 font-bold hover:bg-blue-100 flex items-center gap-1 transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Ver Foto
+                      </a>
+                    )}
+                  </div>
+
+                  <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-3 border-t border-gray-100">
                     <div class="flex items-center gap-1">
                       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                       {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
                     </div>
+                    <span class="text-gray-400">{ag.duracaoMinutos} min</span>
                   </div>
                 </div>
               ))
@@ -146,13 +173,13 @@ const urlBase = "https://g-storm.vercel.app/agendar/";
               </div>
             ) : (
               confirmados.map(ag => (
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors cursor-pointer group border-l-4 border-l-green-500">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors group border-l-4 border-l-green-500">
                   <div class="flex justify-between items-start mb-2">
                     <h4 class="font-bold text-black">{ag.veiculoModelo}</h4>
                     <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
                   </div>
-                  <p class="text-sm text-gray-500 mb-3">{ag.servicoDesejado}</p>
-                  <div class="flex items-center justify-between text-xs font-medium text-gray-500">
+                  <p class="text-sm text-gray-800 font-medium mb-3">{ag.servicoDesejado}</p>
+                  <div class="flex items-center justify-between text-xs font-medium text-gray-500 pt-2 border-t border-gray-100">
                     <div class="flex items-center gap-1">
                       <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                       {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}

@@ -33,6 +33,7 @@ const primeiroNome = session?.user?.name ? session.user.name.split(' ')[0] : 'Ge
 const fotoPerfil = session?.user?.image;
 
 const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso ao G STORM expirou e gostaria de renovar minha mensalidade para continuar usando o sistema no meu estúdio.`;
+const currentPath = Astro.url.pathname;
 ---
 
 <html lang="pt-BR">
@@ -52,20 +53,22 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
         <h2 class="text-2xl font-extrabold tracking-tight">G <span class="text-purple-500">STORM</span></h2>
       </div>
       
-      <nav class="flex-1 p-4 space-y-2">
-        <a href="/dashboard" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isExpirado ? 'opacity-50 cursor-not-allowed text-gray-500' : 'bg-purple-600 text-white'}`}>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-          Início
-        </a>
-        <a href="#" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isExpirado ? 'opacity-50 cursor-not-allowed text-gray-500' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          Agendamentos
-        </a>
-        <a href="#" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isExpirado ? 'opacity-50 cursor-not-allowed text-gray-500' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-          Clientes
-        </a>
-      </nav>
+   <nav class="flex-1 p-4 space-y-2">
+          <a href="/dashboard" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${currentPath === '/dashboard' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            Início
+          </a>
+          
+          <a href="/servicos" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${currentPath === '/servicos' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+            Serviços e Tempos
+          </a>
+
+          <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-gray-400 hover:bg-gray-900 hover:text-white opacity-50 cursor-not-allowed" title="Em breve">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            Clientes
+          </a>
+        </nav>
       
       <div class="p-4 border-t border-gray-800">
         <button id="btn-logout-desktop" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
@@ -83,16 +86,18 @@ const whatsappLink = `https://wa.me/5511957223955?text=Olá Matheus, meu acesso 
           </button>
         </div>
         
-        <nav class="flex-1 p-4 space-y-2">
-          <a href="/dashboard" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isExpirado ? 'opacity-50 cursor-not-allowed text-gray-500' : 'bg-purple-600 text-white'}`}>
+      <nav class="flex-1 p-4 space-y-2">
+          <a href="/dashboard" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${currentPath === '/dashboard' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
             Início
           </a>
-          <a href="#" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isExpirado ? 'opacity-50 cursor-not-allowed text-gray-500' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            Agendamentos
+          
+          <a href="/servicos" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${currentPath === '/servicos' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+            Serviços e Tempos
           </a>
-          <a href="#" class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isExpirado ? 'opacity-50 cursor-not-allowed text-gray-500' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
+
+          <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-gray-400 hover:bg-gray-900 hover:text-white opacity-50 cursor-not-allowed" title="Em breve">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Clientes
           </a>

@@ -10,7 +10,6 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   
-  // Dados do G STORM
   plan: text("plan").default("pro"),
   trialEndsAt: timestamp("trialEndsAt", { mode: "date" }).$defaultFn(() => {
     const data = new Date();
@@ -18,41 +17,54 @@ export const users = pgTable("user", {
     return data;
   }),
   
-  // NOVO: Link único da estética para enviar aos clientes (ex: "estetica-premium")
   slug: text("slug").unique(),
-  // NOVO: Nome da empresa que vai aparecer na página do cliente
   companyName: text("companyName"),
 });
 
-// 2. NOVA TABELA: Agendamentos e Quiz de Pré-Atendimento
-export const agendamentos = pgTable("agendamentos", {
-  // ID único gerado automaticamente pelo banco
+// 2. Tabela: Catálogo de Serviços, Tempos e Preços Dinâmicos
+export const configuracoesServico = pgTable("configuracoes_servico", {
   id: uuid("id").defaultRandom().primaryKey(),
-  
-  // Relacionamento: De qual estética (usuário) é esse agendamento?
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   
-  // Dados do Cliente e Veículo (Passo 1 do Quiz)
+  nomeServico: text("nomeServico").notNull(),
+  categoriaVeiculo: text("categoriaVeiculo").notNull(), 
+  duracaoMinutos: integer("duracaoMinutos").notNull(), 
+  
+  // PREÇOS DINÂMICOS POR NÍVEL DE SUJEIRA
+  precoPoucoSujo: integer("precoPoucoSujo"), 
+  precoMedio: integer("precoMedio"), 
+  precoMuitoSujo: integer("precoMuitoSujo"), 
+});
+
+// 3. Tabela: Agendamentos (Única e Final)
+export const agendamentos = pgTable("agendamentos", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
   clienteNome: text("clienteNome").notNull(),
   clienteWhatsapp: text("clienteWhatsapp").notNull(),
+  
   veiculoModelo: text("veiculoModelo").notNull(),
   veiculoPlaca: text("veiculoPlaca").notNull(),
+  categoriaVeiculo: text("categoriaVeiculo").notNull(),
   
-  // Dados do Serviço (Passo 2 do Quiz)
   servicoDesejado: text("servicoDesejado").notNull(),
-  detalhesEstadoCarro: text("detalhesEstadoCarro"), // Ex: "Pintura muito arranhada, banco manchado"
+  duracaoMinutos: integer("duracaoMinutos").notNull(),
+  detalhesEstadoCarro: text("detalhesEstadoCarro"),
   
-  // Dados de Data e Hora (Passo 3 do Quiz)
+  // CAMPOS: Foto e Sujeira
+  nivelSujeira: text("nivelSujeira").default("Médio"), 
+  fotoVeiculo: text("fotoVeiculo"), 
+  
   dataAgendamento: timestamp("dataAgendamento", { mode: "date" }).notNull(),
-  horaAgendamento: text("horaAgendamento").notNull(), // Ex: "14:30"
+  horaAgendamento: text("horaAgendamento").notNull(),
   
-  // Controle do Painel
-  status: text("status").default("pendente"), // Pode ser: pendente, confirmado, concluido, cancelado
+  status: text("status").default("pendente"),
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
 
 // --------------------------------------------------------
-// Tabelas obrigatórias do Google/NextAuth (Mantidas intactas)
+// Tabelas do NextAuth (Google Login)
 // --------------------------------------------------------
 export const accounts = pgTable(
   "account",
