@@ -2,89 +2,256 @@
 // src/pages/index.astro
 ---
 
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
-    <title>G STORM - Gestão de Estética Automotiva</title>
+    <title>G STORM - O Sistema Definitivo para Estética Automotiva</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-white text-black font-sans antialiased selection:bg-purple-600 selection:text-white">
+  <body class="bg-black text-white font-sans antialiased selection:bg-purple-600 selection:text-white">
     
-    <header class="fixed w-full top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <header class="fixed w-full top-0 z-50 bg-black/80 backdrop-blur-md border-b border-gray-800 transition-all">
       <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <div class="text-2xl font-extrabold tracking-tight cursor-default">
-          G <span class="text-purple-600">STORM</span>
+        <div class="text-2xl font-black tracking-tight cursor-default">
+          G <span class="text-purple-500">STORM</span>
         </div>
-        <nav>
-          <a href="/login" class="px-6 py-2.5 bg-black hover:bg-purple-600 text-white font-semibold rounded-full transition-all duration-300 shadow-md hover:shadow-purple-600/30 flex items-center gap-2">
+        <nav class="flex items-center gap-6">
+          <a href="#recursos" class="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Recursos</a>
+          <a href="#vantagens" class="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Vantagens</a>
+          <a href="/login" class="px-6 py-2.5 bg-white text-black hover:bg-purple-500 hover:text-white font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(139,92,246,0.3)] flex items-center gap-2">
             Acessar Painel
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </a>
         </nav>
       </div>
+      <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23000000'/><text x='50' y='72' font-family='system-ui, sans-serif' font-size='60' font-weight='900' text-anchor='middle'><tspan fill='%23ffffff'>G</tspan><tspan fill='%238b5cf6'>S</tspan></text></svg>" />
     </header>
 
-    <main class="pt-32 pb-16 md:pt-48 md:pb-32 px-6">
-      <div class="max-w-7xl mx-auto text-center">
-        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 text-black">
-          Acelere a gestão da sua <br class="hidden md:block" />
-          <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-black">Estética Automotiva</span>
+    <main class="relative pt-40 pb-20 md:pt-52 md:pb-32 px-6 overflow-hidden">
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-900/30 rounded-full blur-[120px] pointer-events-none"></div>
+      
+      <div class="max-w-5xl mx-auto text-center relative z-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-semibold mb-8">
+          <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+          A tecnologia que a sua estética exigia
+        </div>
+        
+        <h1 class="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter mb-8 leading-[1.1]">
+          Controle absoluto de <br class="hidden md:block" />
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-purple-500 to-purple-800">ponta a ponta.</span>
         </h1>
-        <p class="text-lg md:text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
-          O sistema definitivo para estúdios de detalhamento. Controle agendamentos, clientes e faturamento em uma plataforma premium, rápida e focada em resultados.
+        
+        <p class="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+          O G STORM automatiza processos, reduz custos e centraliza as vendas do seu estúdio de detalhamento. Abandone as planilhas e passe a imagem premium que o seu cliente espera.
         </p>
+        
         <div class="flex flex-col sm:flex-row justify-center gap-4">
-          <a href="/login" class="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-lg transition-colors shadow-lg shadow-purple-600/30">
-            Começar Agora
+          <a href="/login" class="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-lg transition-all shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:scale-105 flex items-center justify-center gap-2">
+            Testar 15 Dias Grátis
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </a>
-          <a href="#recursos" class="px-8 py-4 bg-gray-50 hover:bg-gray-100 text-black font-bold rounded-xl text-lg transition-colors border border-gray-200">
-            Conhecer Recursos
+          <a href="https://wa.me/5511957223955?text=Olá, quero saber como o G STORM pode acelerar minha estética automotiva." target="_blank" class="px-8 py-4 bg-transparent border border-gray-700 hover:border-white text-white font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2">
+            Falar com Especialista
           </a>
         </div>
+        <p class="mt-4 text-sm text-gray-500 font-medium">Sem necessidade de cartão de crédito.</p>
       </div>
     </main>
 
-    <section id="recursos" class="py-24 bg-black text-white px-6">
+    <section class="border-y border-gray-800 bg-black/50 py-10 px-6">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 text-center">
+        <div>
+          <h4 class="text-3xl font-black text-white mb-1">+100</h4>
+          <p class="text-gray-500 text-sm uppercase tracking-widest font-semibold">Funcionalidades</p>
+        </div>
+        <div class="hidden md:block w-px h-12 bg-gray-800"></div>
+        <div>
+          <h4 class="text-3xl font-black text-white mb-1">0%</h4>
+          <p class="text-gray-500 text-sm uppercase tracking-widest font-semibold">Travamentos</p>
+        </div>
+        <div class="hidden md:block w-px h-12 bg-gray-800"></div>
+        <div>
+          <h4 class="text-3xl font-black text-purple-500 mb-1">100%</h4>
+          <p class="text-gray-500 text-sm uppercase tracking-widest font-semibold">Foco em Detalhamento</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="recursos" class="py-24 px-6 bg-[#050505]">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-5xl font-bold mb-4">Tudo o que seu estúdio precisa</h2>
-          <p class="text-gray-400">Desenvolvido para quem entende de detalhe e perfeição.</p>
+          <h2 class="text-3xl md:text-5xl font-black mb-6">Ferramentas montadas à mão<br />para o seu estúdio decolar</h2>
+          <p class="text-gray-400 text-lg max-w-2xl mx-auto">Tudo que você precisa para padronizar o atendimento, desde a entrada do veículo até a entrega das chaves.</p>
         </div>
-        
-        <div class="grid md:grid-cols-3 gap-8">
-          <div class="bg-gray-900 p-8 rounded-2xl border border-gray-800 hover:border-purple-500 transition-colors group">
-            <div class="w-12 h-12 bg-purple-600/20 text-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="bg-gray-900/50 p-8 rounded-2xl border border-gray-800 hover:border-purple-500/50 transition-all group hover:-translate-y-1">
+            <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
             </div>
-            <h3 class="text-xl font-bold mb-3">Agenda Inteligente</h3>
-            <p class="text-gray-400">Organize os horários dos boxes, evite choques de clientes e tenha a previsão exata de entrega.</p>
+            <h3 class="text-xl font-bold mb-3 text-white">Direto para o WhatsApp</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Envie orçamentos profissionais, ordens de serviço e lembretes de revisão diretamente no WhatsApp do seu cliente com um clique.</p>
           </div>
 
-          <div class="bg-gray-900 p-8 rounded-2xl border border-gray-800 hover:border-purple-500 transition-colors group">
-            <div class="w-12 h-12 bg-purple-600/20 text-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <div class="bg-gray-900/50 p-8 rounded-2xl border border-gray-800 hover:border-purple-500/50 transition-all group hover:-translate-y-1">
+            <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold mb-3 text-white">Checklist Fotográfico</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Tire fotos das avarias do veículo na recepção. Proteja sua empresa de reclamações indevidas e mostre transparência.</p>
+          </div>
+
+          <div class="bg-gray-900/50 p-8 rounded-2xl border border-gray-800 hover:border-purple-500/50 transition-all group hover:-translate-y-1">
+            <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h3 class="text-xl font-bold mb-3">Controle Financeiro</h3>
-            <p class="text-gray-400">Acompanhe faturamentos e tickets médios. Saiba exatamente quanto seu estúdio está lucrando.</p>
+            <h3 class="text-xl font-bold mb-3 text-white">Fluxo Financeiro Real</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Registre entradas e saídas, gerencie o desconto das taxas da maquininha e saiba exatamente quanto sobrou de lucro no fim do mês.</p>
           </div>
 
-          <div class="bg-gray-900 p-8 rounded-2xl border border-gray-800 hover:border-purple-500 transition-colors group">
-            <div class="w-12 h-12 bg-purple-600/20 text-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <div class="bg-gray-900/50 p-8 rounded-2xl border border-gray-800 hover:border-purple-500/50 transition-all group hover:-translate-y-1">
+            <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold mb-3 text-white">Controle de Boxes (Pátio)</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Gestão visual do seu pátio. Saiba quais carros estão lavando, quais estão no polimento e quais aguardam retirada.</p>
+          </div>
+
+          <div class="bg-gray-900/50 p-8 rounded-2xl border border-gray-800 hover:border-purple-500/50 transition-all group hover:-translate-y-1">
+            <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             </div>
-            <h3 class="text-xl font-bold mb-3">Gestão de Clientes</h3>
-            <p class="text-gray-400">Histórico de serviços por veículo e CRM básico para fidelizar seu público e gerar recorrência.</p>
+            <h3 class="text-xl font-bold mb-3 text-white">Retenção de Clientes</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Histórico completo por placa. Saiba quando o cliente fez a última vitrificação para chamá-lo de volta no momento certo.</p>
+          </div>
+
+          <div class="bg-gray-900/50 p-8 rounded-2xl border border-gray-800 hover:border-purple-500/50 transition-all group hover:-translate-y-1">
+            <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold mb-3 text-white">Orçamentos Profissionais</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Esqueça o papel. Monte orçamentos com a sua logo em poucos cliques, imprima em A4 ou envie o link direto para aprovação.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <footer class="bg-black py-8 border-t border-gray-900 text-center text-gray-500 px-6">
-      <p>© 2026 G STORM. Todos os direitos reservados.</p>
+    <section id="vantagens" class="py-24 px-6 border-t border-gray-900 relative overflow-hidden">
+      <div class="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-purple-900/10 to-transparent pointer-events-none"></div>
+
+      <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+        <div class="flex-1 space-y-8 relative z-10">
+          <h2 class="text-4xl md:text-5xl font-black leading-tight">
+            Venda o seu valor,<br /> não apenas serviços.
+          </h2>
+          <div class="space-y-6">
+            <div class="flex gap-4">
+              <div class="mt-1 flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <div>
+                <h4 class="text-xl font-bold text-white mb-2">Diferencial Competitivo</h4>
+                <p class="text-gray-400">Quando seu cliente recebe um check-in digital com fotos do veículo no WhatsApp dele, ele percebe imediatamente que não está em um lugar comum.</p>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="mt-1 flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <div>
+                <h4 class="text-xl font-bold text-white mb-2">Previsibilidade Financeira</h4>
+                <p class="text-gray-400">Chega de trabalhar e não ver a cor do dinheiro. Saiba seu ticket médio, custos e projetado para o mês na primeira tela do painel.</p>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="mt-1 flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <div>
+                <h4 class="text-xl font-bold text-white mb-2">Desenvolvido para Mobilidade</h4>
+                <p class="text-gray-400">Nossa plataforma roda direto no navegador do seu celular de forma nativa. O funcionário atualiza o status do carro lá dentro do box.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex-1 w-full bg-gray-900 rounded-3xl border border-gray-800 p-8 shadow-2xl relative">
+          <div class="absolute top-4 left-4 flex gap-2">
+            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+          </div>
+          <div class="mt-8 space-y-4">
+            <div class="h-8 bg-gray-800 rounded w-1/3"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="h-24 bg-gray-800 rounded-xl border border-gray-700 p-4">
+                <div class="h-4 bg-purple-500/20 rounded w-1/2 mb-2"></div>
+                <div class="h-6 bg-white/10 rounded w-3/4"></div>
+              </div>
+              <div class="h-24 bg-gray-800 rounded-xl border border-gray-700 p-4">
+                <div class="h-4 bg-purple-500/20 rounded w-1/2 mb-2"></div>
+                <div class="h-6 bg-white/10 rounded w-3/4"></div>
+              </div>
+            </div>
+            <div class="h-40 bg-gray-800 rounded-xl border border-gray-700 mt-4 flex items-center justify-center">
+              <span class="text-gray-600 font-medium">G STORM Dashboard Analytics</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-24 px-6 bg-black">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="text-3xl md:text-4xl font-black text-center mb-12">Dúvidas Frequentes</h2>
+        
+        <div class="space-y-4">
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+            <h4 class="text-lg font-bold text-white mb-2">Posso acessar do meu celular?</h4>
+            <p class="text-gray-400 text-sm">Sim! O G STORM foi construído com tecnologia responsiva de ponta. Ele se adapta perfeitamente a qualquer celular, tablet ou computador, direto no navegador, sem precisar ocupar memória instalando aplicativos.</p>
+          </div>
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+            <h4 class="text-lg font-bold text-white mb-2">É preciso ser bom em informática para usar?</h4>
+            <p class="text-gray-400 text-sm">Não. Nós desenhamos a interface para ser mais fácil de usar que as redes sociais. Em menos de 10 minutos você já entende como cadastrar clientes, veículos e criar orçamentos.</p>
+          </div>
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+            <h4 class="text-lg font-bold text-white mb-2">Como funcionam os 15 dias grátis?</h4>
+            <p class="text-gray-400 text-sm">Você cria sua conta usando o Google em 2 cliques. A partir desse momento, o sistema completo está liberado para sua estética por 15 dias. Nós NÃO pedimos seu cartão de crédito para testar.</p>
+          </div>
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+            <h4 class="text-lg font-bold text-white mb-2">Os dados dos meus clientes estão seguros?</h4>
+            <p class="text-gray-400 text-sm">Totalmente. Utilizamos os mesmos protocolos de criptografia e bancos de dados em nuvem de grandes empresas de tecnologia, garantindo que suas finanças e carteira de clientes jamais sejam acessadas por terceiros.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-24 px-6 border-t border-gray-900 relative">
+      <div class="max-w-4xl mx-auto bg-gradient-to-br from-purple-900 to-black border border-purple-800 rounded-3xl p-10 md:p-16 text-center relative overflow-hidden shadow-2xl shadow-purple-900/20">
+        <div class="relative z-10">
+          <h2 class="text-3xl md:text-5xl font-black text-white mb-6">Pronto para elevar o nível da sua estética em 2026?</h2>
+          <p class="text-purple-200 mb-10 text-lg">Crie sua conta agora. Em menos de 1 minuto você já estará operando com o melhor sistema do mercado automotivo.</p>
+          <a href="/login" class="inline-flex items-center gap-2 px-10 py-5 bg-white text-black hover:bg-gray-200 font-bold rounded-xl text-lg transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105">
+            Começar 15 Dias Grátis Agora
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bg-black py-10 border-t border-gray-900 px-6">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="text-xl font-extrabold tracking-tight cursor-default">
+          G <span class="text-purple-600">STORM</span>
+        </div>
+        <p class="text-sm text-gray-600">© 2026 G STORM. Todos os direitos reservados.</p>
+        <div class="flex items-center gap-4">
+          <a href="https://wa.me/5511957223955" target="_blank" class="text-gray-500 hover:text-white transition-colors text-sm font-medium">Suporte WhatsApp</a>
+        </div>
+      </div>
     </footer>
+    
   </body>
 </html>

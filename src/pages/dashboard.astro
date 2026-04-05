@@ -2,59 +2,170 @@
 // src/pages/dashboard.astro
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { getSession } from 'auth-astro/server';
+import { db } from '../db';
+import { users, agendamentos } from '../db/schema';
+import { eq, desc } from 'drizzle-orm';
 
-// Busca a sessão do usuário logado
+// Proteção de rota
 const session = await getSession(Astro.request);
-
-// Proteção de Rota: Se não tiver sessão (não estiver logado), redireciona pro login
-if (!session) {
+if (!session?.user?.email) {
   return Astro.redirect('/login');
 }
+
+// Lógica para salvar o Link Único (Slug) e Nome da Empresa
+let erroSlug = false;
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const companyName = formData.get('companyName')?.toString();
+    // Transforma "Estética Premium" em "estetica-premium"
+    let slug = formData.get('slug')?.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-');
+
+    if (companyName && slug) {
+      await db.update(users).set({ companyName, slug }).where(eq(users.email, session.user.email));
+    }
+  } catch (e) {
+    erroSlug = true; // Caso o slug já exista para outra pessoa
+  }
+}
+
+// Busca os dados do usuário logado
+const userDbArray = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1);
+const userDb = userDbArray[0];
+
+// Busca todos os agendamentos desta estética
+const listaAgendamentos = await db.select().from(agendamentos).where(eq(agendamentos.userId, userDb.id)).orderBy(desc(agendamentos.createdAt));
+
+// Separa os agendamentos por status
+const pendentes = listaAgendamentos.filter(a => a.status === 'pendente');
+const confirmados = listaAgendamentos.filter(a => a.status === 'confirmado');
+
+const urlBase = "https://g-storm.vercel.app/agendar/";
 ---
 
 <DashboardLayout>
-  <div class="mb-8 flex justify-between items-end">
+  <div class="space-y-8">
+    
     <div>
-      <h1 class="text-3xl font-bold text-gray-900">Visão Geral</h1>
-      <p class="text-gray-500 mt-1">
-        Bem-vindo de volta, <span class="font-semibold text-purple-600">{session?.user?.name || 'Gestor'}</span>! Acompanhe os resultados do G STORM hoje.
-      </p>
-    </div>
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-purple-600">
-      <h3 class="text-sm font-medium text-gray-500 mb-2">Agendamentos Hoje</h3>
-      <p class="text-3xl font-extrabold text-gray-900">5</p>
+      <h1 class="text-3xl font-black text-black tracking-tight">Gestão de Agendamentos</h1>
+      <p class="text-gray-500 mt-1">Controle os horários dos boxes e avalie novos pedidos.</p>
     </div>
 
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-black">
-      <h3 class="text-sm font-medium text-gray-500 mb-2">Faturamento Esperado</h3>
-      <p class="text-3xl font-extrabold text-gray-900">R$ 1.250</p>
-    </div>
-
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300">
-      <h3 class="text-sm font-medium text-gray-500 mb-2">Novos Clientes</h3>
-      <p class="text-3xl font-extrabold text-gray-900">2</p>
-    </div>
-
-  </div>
-  
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-      <h2 class="text-lg font-bold text-gray-900">Próximos Veículos</h2>
-      <button class="text-sm text-purple-600 font-semibold hover:text-purple-800 transition-colors">
-        Ver todos
-      </button>
-    </div>
-    
-    <div class="p-6">
-      <div class="text-center py-10 text-gray-400 flex flex-col items-center">
-        <svg class="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-        <p>A agenda de hoje está limpa.</p>
-        <p class="text-sm mt-1">Nenhum veículo cadastrado no banco de dados ainda.</p>
+    {!userDb.slug ? (
+      <div class="bg-black text-white p-8 rounded-2xl shadow-xl relative overflow-hidden border border-gray-800">
+        <div class="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-purple-600/20 to-transparent pointer-events-none"></div>
+        <div class="relative z-10 max-w-xl">
+          <div class="w-12 h-12 bg-purple-600/20 text-purple-400 rounded-xl flex items-center justify-center mb-6">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+          </div>
+          <h2 class="text-2xl font-bold mb-2">Configure seu Link de Agendamento</h2>
+          <p class="text-gray-400 mb-6 leading-relaxed">Crie o link exclusivo da sua estética para enviar no WhatsApp dos clientes. Eles poderão preencher o quiz de pré-atendimento e escolher datas disponíveis.</p>
+          
+          <form method="POST" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1">Nome da sua Estética</label>
+              <input type="text" name="companyName" required placeholder="Ex: Studio Marqé Premium" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1">Nome do Link (URL)</label>
+              <div class="flex">
+                <span class="inline-flex items-center px-4 bg-gray-800 border border-r-0 border-gray-700 rounded-l-xl text-gray-400 text-sm">g-storm.vercel.app/agendar/</span>
+                <input type="text" name="slug" required placeholder="studio-marqe" class="flex-1 w-full bg-gray-900 border border-gray-700 rounded-r-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all" />
+              </div>
+              {erroSlug && <p class="text-red-400 text-xs mt-2">Esse link já está em uso por outra empresa. Tente outro.</p>}
+            </div>
+            <button type="submit" class="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-purple-900/50">
+              Gerar Meu Link
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
+    ) : (
+      <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Seu Link de Agendamento</h3>
+          <div class="flex items-center gap-2">
+            <span class="text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-lg border border-purple-100 select-all">{urlBase}{userDb.slug}</span>
+          </div>
+        </div>
+        <button onclick={`navigator.clipboard.writeText('${urlBase}${userDb.slug}'); alert('Link copiado com sucesso!');`} class="px-5 py-2.5 bg-black hover:bg-gray-800 text-white font-semibold rounded-xl transition-all flex items-center gap-2 text-sm shadow-md">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+          Copiar Link
+        </button>
+      </div>
+    )}
+
+    {userDb.slug && (
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+        
+        <div class="bg-gray-100 rounded-2xl p-4 border border-gray-200">
+          <div class="flex items-center justify-between mb-4 px-2">
+            <h3 class="font-bold text-gray-700 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span> Pendentes
+            </h3>
+            <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full">{pendentes.length}</span>
+          </div>
+          
+          <div class="space-y-3">
+            {pendentes.length === 0 ? (
+              <div class="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-xl">
+                Nenhuma solicitação nova.
+              </div>
+            ) : (
+              pendentes.map(ag => (
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer group">
+                  <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-bold text-black">{ag.veiculoModelo}</h4>
+                    <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
+                  </div>
+                  <p class="text-sm text-gray-500 mb-3">{ag.clienteNome}</p>
+                  <div class="flex items-center justify-between text-xs font-medium text-gray-500">
+                    <div class="flex items-center gap-1">
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div class="bg-gray-100 rounded-2xl p-4 border border-gray-200">
+          <div class="flex items-center justify-between mb-4 px-2">
+            <h3 class="font-bold text-gray-700 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span> Confirmados
+            </h3>
+            <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full">{confirmados.length}</span>
+          </div>
+          
+          <div class="space-y-3">
+            {confirmados.length === 0 ? (
+              <div class="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-xl">
+                Nenhum box reservado.
+              </div>
+            ) : (
+              confirmados.map(ag => (
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 transition-colors cursor-pointer group border-l-4 border-l-green-500">
+                  <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-bold text-black">{ag.veiculoModelo}</h4>
+                    <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{ag.veiculoPlaca}</span>
+                  </div>
+                  <p class="text-sm text-gray-500 mb-3">{ag.servicoDesejado}</p>
+                  <div class="flex items-center justify-between text-xs font-medium text-gray-500">
+                    <div class="flex items-center gap-1">
+                      <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                      {new Date(ag.dataAgendamento).toLocaleDateString('pt-BR')} às {ag.horaAgendamento}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+      </div>
+    )}
+
   </div>
 </DashboardLayout>
