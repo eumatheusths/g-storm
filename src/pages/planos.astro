@@ -15,6 +15,7 @@ if (!session?.user?.email) {
     <div id="loading-overlay" class="hidden absolute inset-0 z-50 bg-gray-50/80 backdrop-blur-sm flex-col items-center justify-center rounded-3xl">
         <svg class="animate-spin w-12 h-12 text-purple-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
         <p class="text-xl font-bold text-black tracking-tight">Gerando ambiente seguro...</p>
+        <p class="text-sm text-gray-500">Você será redirecionado para o Abacate Pay</p>
     </div>
 
     <div class="text-center mb-12">
@@ -75,13 +76,22 @@ if (!session?.user?.email) {
         <button class="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all btn-assinar" data-plano="semestral">
           Assinar Semestral
         </button>
-
-        <button class="btn-assinar bg-red-500 text-white p-2 rounded" data-plano="teste">
-  Testar Webhook (R$ 0,10)
-</button>
       </div>
 
     </div>
+
+    <div class="mt-16 pt-8 border-t border-gray-200 text-center">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Modo Desenvolvedor</p>
+        <button 
+            class="btn-assinar inline-flex items-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl border border-red-200 transition-all text-sm" 
+            data-plano="teste"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            Executar Teste de Webhook (R$ 0,10)
+        </button>
+        <p class="text-[10px] text-gray-400 mt-2">Este botão gera uma cobrança real de 10 centavos para validar a promoção automática para PRO.</p>
+    </div>
+
   </div>
 </DashboardLayout>
 
@@ -92,7 +102,12 @@ if (!session?.user?.email) {
   botoes.forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const plano = (e.currentTarget as HTMLButtonElement).dataset.plano;
-      if (loadingOverlay) { loadingOverlay.classList.remove('hidden'); loadingOverlay.classList.add('flex'); }
+      
+      // Ativa o loading
+      if (loadingOverlay) { 
+        loadingOverlay.classList.remove('hidden'); 
+        loadingOverlay.classList.add('flex'); 
+      }
 
       try {
         const res = await fetch('/api/checkout', {
@@ -100,10 +115,23 @@ if (!session?.user?.email) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ plano })
         });
+        
         const data = await res.json();
-        if (data.success && data.checkoutUrl) { window.location.href = data.checkoutUrl; } 
-        else { alert('Erro: ' + (data.error || 'Tente novamente.')); loadingOverlay?.classList.add('hidden'); }
-      } catch (err) { alert('Erro de conexão.'); loadingOverlay?.classList.add('hidden'); }
+        
+        if (data.success && data.checkoutUrl) { 
+          // Redireciona para o checkout do Abacate Pay
+          window.location.href = data.checkoutUrl; 
+        } 
+        else { 
+          alert('Erro ao gerar checkout: ' + (data.error || 'Tente novamente.')); 
+          loadingOverlay?.classList.add('hidden'); 
+          loadingOverlay?.classList.remove('flex');
+        }
+      } catch (err) { 
+        alert('Erro de conexão com o servidor.'); 
+        loadingOverlay?.classList.add('hidden'); 
+        loadingOverlay?.classList.remove('flex');
+      }
     });
   });
 </script>
